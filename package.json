@@ -1,0 +1,47 @@
+{
+  "name": "plate-stay",
+  "version": "0.1.0",
+  "description": "Fail-closed bridge between Plate's `withBlockId` serializer and markstay's stable block ids (carry Plate ids as invisible markstay markers, round-trip back)",
+  "type": "module",
+  "license": "MIT",
+  "author": "markstaymd <markstaymd@users.noreply.github.com>",
+  "homepage": "https://markstay.org/plate",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/markstaymd/plate-stay.git"
+  },
+  "bugs": {
+    "url": "https://github.com/markstaymd/plate-stay/issues"
+  },
+  "keywords": [
+    "plate",
+    "platejs",
+    "markdown",
+    "mdx",
+    "block-identity",
+    "markstay",
+    "ai-editing"
+  ],
+  "types": "./bridge.d.ts",
+  "exports": {
+    ".": {
+      "types": "./bridge.d.ts",
+      "default": "./bridge.js"
+    }
+  },
+  "files": [
+    "bridge.js",
+    "bridge.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "markstay": "^0.2.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
