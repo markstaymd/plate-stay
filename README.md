@@ -61,6 +61,33 @@ syntax: `<block id>` is foreign input it translates; output is plain CommonMark
 plus standard `<!-- stay: -->` markers, byte-identical to what `markstay`'s own
 `stamp()` would produce.
 
+## The plugin (editor-native): `plate-stay/plugin`
+
+The `.` entry above runs on serialized `.md`. The optional `plate-stay/plugin` entry
+integrates the same identity into a live [Plate](https://platejs.org) editor, so ids and
+hashes are written and read at the editor's own markdown layer , no fork of Plate.
+
+`@platejs/markdown` and `platejs` are **optional peer dependencies**: a string-bridge-only
+install pulls none of Plate; the plugin uses the Plate you already have.
+
+```js
+import { createSlateEditor } from "platejs"; // or createPlateEditor in React
+import { markstayMarkdown, serializeStay, deserializeStay, checkDrift } from "plate-stay/plugin";
+
+// Build your editor with the configured markdown plugin in place of bare MarkdownPlugin:
+const editor = createSlateEditor({ plugins: [markstayMarkdown], value });
+
+serializeStay(editor);        // editor value -> CommonMark + invisible markstay markers
+deserializeStay(editor, md);  // markstay-marked .md -> editor value, id + block type restored
+checkDrift(editor);           // [{ id, was, now }] for each block changed since load
+```
+
+It supplies the two halves Plate's `withBlockId` leaves out: a **reader** (a `rules.block`
+deserializer restores `node.id` and the block's real type, where native Plate flattens the
+wrapper to literal text and loses the id) and a **drift signal** (the §8 body hash, so a
+comment bound to a block can tell when that block changed , the point of "AI comment
+tracking"). Same fail-closed subset as the bridge.
+
 ## Supported subset (v1)
 
 A wrapper maps cleanly only when its dedented body is a single blank-line block

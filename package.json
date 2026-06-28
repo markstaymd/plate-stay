@@ -1,7 +1,7 @@
 {
   "name": "plate-stay",
-  "version": "0.1.0",
-  "description": "Fail-closed bridge between Plate's `withBlockId` serializer and markstay's stable block ids (carry Plate ids as invisible markstay markers, round-trip back)",
+  "version": "0.2.0",
+  "description": "Fail-closed bridge between Plate's `withBlockId` serializer and markstay's stable block ids (carry Plate ids as invisible markstay markers, round-trip back). The optional `plate-stay/plugin` entry adds editor-native serialize/deserialize + drift detection for Plate.",
   "type": "module",
   "license": "MIT",
   "author": "markstaymd <markstaymd@users.noreply.github.com>",
@@ -16,6 +16,7 @@
   "keywords": [
     "plate",
     "platejs",
+    "slate",
     "markdown",
     "mdx",
     "block-identity",
@@ -27,11 +28,17 @@
     ".": {
       "types": "./bridge.d.ts",
       "default": "./bridge.js"
+    },
+    "./plugin": {
+      "types": "./plugin.d.ts",
+      "default": "./plugin.js"
     }
   },
   "files": [
     "bridge.js",
     "bridge.d.ts",
+    "plugin.js",
+    "plugin.d.ts",
     "README.md",
     "LICENSE"
   ],
@@ -40,6 +47,22 @@
   },
   "dependencies": {
     "markstay": "^0.2.1"
+  },
+  "peerDependencies": {
+    "@platejs/markdown": "^53.2.0",
+    "platejs": "^53.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@platejs/markdown": {
+      "optional": true
+    },
+    "platejs": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@platejs/markdown": "53.2.2",
+    "platejs": "53.2.4"
   },
   "engines": {
     "node": ">=22"
