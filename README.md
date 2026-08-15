@@ -4,7 +4,7 @@
 [![bundle size](https://img.shields.io/bundlephobia/minzip/plate-stay)](https://bundlephobia.com/package/plate-stay)
 [![tests](https://img.shields.io/github/actions/workflow/status/markstaymd/plate-stay/test.yml?label=tests)](https://github.com/markstaymd/plate-stay/actions/workflows/test.yml)
 [![types](https://img.shields.io/badge/types-included-blue)](https://www.typescriptlang.org/)
-[![spec](https://img.shields.io/badge/spec-v1.1-blue)](https://markstay.org)
+[![spec](https://img.shields.io/badge/spec-v1.2-blue)](https://markstay.org)
 [![License](https://img.shields.io/npm/l/plate-stay)](./LICENSE)
 
 A fail-closed bridge between [Plate](https://platejs.org)'s `withBlockId` Markdown
