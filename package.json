@@ -1,6 +1,6 @@
 {
   "name": "plate-stay",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Fail-closed bridge between Plate's `withBlockId` serializer and markstay's stable block ids (carry Plate ids as invisible markstay markers, round-trip back). The optional `plate-stay/plugin` entry adds editor-native serialize/deserialize + drift detection for Plate.",
   "type": "module",
   "license": "MIT",
@@ -46,7 +46,7 @@
     "test": "node --test"
   },
   "dependencies": {
-    "markstay": "^0.6.0"
+    "markstay": "^0.7.0"
   },
   "peerDependencies": {
     "@platejs/markdown": "^53.2.0",
