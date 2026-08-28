@@ -4,11 +4,18 @@
 [![bundle size](https://img.shields.io/bundlephobia/minzip/plate-stay)](https://bundlephobia.com/package/plate-stay)
 [![tests](https://img.shields.io/github/actions/workflow/status/markstaymd/plate-stay/test.yml?label=tests)](https://github.com/markstaymd/plate-stay/actions/workflows/test.yml)
 [![types](https://img.shields.io/badge/types-included-blue)](https://www.typescriptlang.org/)
-[![spec](https://img.shields.io/badge/spec-v1.2-blue)](https://markstay.org)
+[![spec](https://img.shields.io/badge/spec-v1.4-blue)](https://markstay.org)
 [![License](https://img.shields.io/npm/l/plate-stay)](./LICENSE)
 
 A fail-closed bridge between [Plate](https://platejs.org)'s `withBlockId` Markdown
 serializer and [markstay](https://markstay.org)'s stable block ids.
+
+**Child-block identity (§5.5) is not implemented here.** Version 1.3 lets a direct list
+item carry its own stay under the reserved `subhash` key, and §16 makes segmenting and
+resolving those **optional**. What §16 makes mandatory for every tool is the write-path
+shim, which this package honours: a `subhash` marker is preserved verbatim, never given
+a container hash, and never counted as its block's stay. The Python reference implements
+the section itself.
 
 ## The problem
 
