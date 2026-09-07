@@ -4,18 +4,24 @@
 [![bundle size](https://img.shields.io/bundlephobia/minzip/plate-stay)](https://bundlephobia.com/package/plate-stay)
 [![tests](https://img.shields.io/github/actions/workflow/status/markstaymd/plate-stay/test.yml?label=tests)](https://github.com/markstaymd/plate-stay/actions/workflows/test.yml)
 [![types](https://img.shields.io/badge/types-included-blue)](https://www.typescriptlang.org/)
-[![spec](https://img.shields.io/badge/spec-v1.5-blue)](https://markstay.org)
+[![spec](https://img.shields.io/badge/spec-v1.6-blue)](https://markstay.org)
 [![License](https://img.shields.io/npm/l/plate-stay)](./LICENSE)
 
 A fail-closed bridge between [Plate](https://platejs.org)'s `withBlockId` Markdown
 serializer and [markstay](https://markstay.org)'s stable block ids.
 
-**Child-block identity (§5.5) is not implemented here.** Version 1.3 lets a direct list
-item carry its own stay under the reserved `subhash` key, and §16 makes segmenting and
-resolving those **optional**. What §16 makes mandatory for every tool is the write-path
-shim, which this package honours: a `subhash` marker is preserved verbatim, never given
-a container hash, and never counted as its block's stay. The Python reference implements
-the section itself.
+**A document carrying child identity is declined, not converted.** Version 1.3 lets a
+direct list item carry its own stay under the reserved `subhash` key and version 1.6
+does the same for a table body row, while §16 keeps segmenting and resolving them
+**optional**. What §16 makes mandatory is a write-path shim this package honours (a
+`subhash` marker is preserved verbatim and never given a container hash) plus one rule
+binding every reader: such a marker must never be reported as the stay of the block
+containing it. Plate's `withBlockId` holds one id per block and has nowhere to put a
+child's, so converting would have to either promote the child's id to its container,
+which that rule forbids, or drop the child's evidence. Both are worse than saying no, so
+`toPlate` throws `UnsupportedPlateBlock` on any block carrying one. A custom key such as
+`x-subhash` stays ordinary block metadata and converts normally. The Python reference
+implements the sections themselves.
 
 ## The problem
 
@@ -105,9 +111,13 @@ real Plate output: a heading, a paragraph, a single-paragraph blockquote, or a
 Everything else throws `UnsupportedPlateBlock`. The rejections are honest spec
 facts, not gaps to paper over:
 
-- **Lists.** Plate wraps each list *item* as its own `<block>`, but markstay defers
-  list-item identity (SPEC §5.1, §14): a marker only ever identifies the whole
-  list, so per-item ids have nowhere to attach.
+- **Lists.** Plate wraps each list *item* as its own `<block>`, and while markstay does
+  give a direct list item its own identity (SPEC §5.5), it addresses one *inside* its
+  list under `subhash` rather than as a block of its own, so a per-item `<block id>` has
+  nowhere to attach.
+- **Any block carrying a `subhash` marker**, from §5.5 list items or §5.6 table rows.
+  One id per `<block>` leaves nowhere to carry a child's, and §16 forbids reporting it
+  as the container's stay, so the document is declined rather than misattributed.
 - **Loose / multi-paragraph blocks, and fences with an internal blank line.** Under
   the blank-line core these split into multiple blocks, so a single trailing marker
   would bind the wrong chunk.

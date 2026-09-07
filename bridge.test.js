@@ -147,6 +147,34 @@ test("toPlate: block with no stay id fails closed", () => {
   assert.throws(() => toPlate("just a paragraph, no marker\n"), UnsupportedPlateBlock);
 });
 
+// §16 binds every reader: a marker carrying `subhash` is child identity (§5.5 list
+// items, §5.6 table rows) and must never be reported as the stay of the block that
+// contains it. Plate has one id per block, so the only conforming answer that also
+// keeps the child's evidence is to decline the document. Without this the bridge
+// wrapped the whole list in `<block id="kid">` and dropped the marker.
+test("toPlate: a child (subhash) marker fails closed rather than claiming its container", () => {
+  const child = "- alpha <!-- stay:kid subhash=sha256:0123456789ab -->\n- beta\n";
+  assert.throws(() => toPlate(child), UnsupportedPlateBlock);
+  // Also when the container carries a legitimate stay of its own: the child's id must
+  // not be silently discarded just because another id is available.
+  assert.throws(
+    () => toPlate(child + "<!-- stay:parent0001 hash=sha256:abcdef123456 -->\n"),
+    UnsupportedPlateBlock
+  );
+  // And for a row carrier, which sits mid-line inside the table's last cell.
+  const row =
+    "| a | b |\n|---|---|\n| 1 | 2<!-- stay:row1 subhash=sha256:0123456789ab --> |\n" +
+    "<!-- stay:table0001 hash=sha256:abcdef123456 -->\n";
+  assert.throws(() => toPlate(row), UnsupportedPlateBlock);
+});
+
+test("toPlate: an x- namespaced lookalike key stays ordinary block metadata", () => {
+  // §4 reserves `subhash` exactly; `x-subhash` is an extension key a tool must
+  // preserve and must not interpret, so this block converts normally.
+  const md = "Text. <!-- stay:extension1 x-subhash=sha256:0123456789ab -->\n";
+  assert.match(toPlate(md), /<block id="extension1">/);
+});
+
 test("toPlate: orphan marker fails closed", () => {
   assert.throws(
     () => toPlate("<!-- stay:orphan0001 hash=sha256:abcdef123456 -->\n"),

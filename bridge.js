@@ -300,6 +300,19 @@ export function toPlate(md) {
     if (b.markers.some((mk) => mk.malformed)) {
       throw new UnsupportedPlateBlock(`malformed marker on block at line ${b.line}`);
     }
+    // §16: a marker carrying `subhash` addresses a child (a list item, §5.5, or a
+    // table row, §5.6), and no reader may report it as the stay of the block that
+    // contains it. Plate's `withBlockId` model has one id per block and no place to
+    // put a child's, so the honest answer is to decline the document rather than
+    // either promote the child's id to the container or drop its evidence on the
+    // floor. Filtering alone would do the first half and still lose the marker,
+    // since `b.content` arrives with markers already removed.
+    if (b.markers.some((mk) => mk.hasSubhash)) {
+      throw new UnsupportedPlateBlock(
+        `block at line ${b.line} carries child identity (a subhash marker); Plate has ` +
+          `no representation for it and the conversion would drop the child's evidence`
+      );
+    }
     const ids = b.markers.filter((mk) => mk.id).map((mk) => mk.id);
     if (ids.length === 0) {
       throw new UnsupportedPlateBlock(
