@@ -4,7 +4,7 @@
 [![bundle size](https://img.shields.io/bundlephobia/minzip/plate-stay)](https://bundlephobia.com/package/plate-stay)
 [![tests](https://img.shields.io/github/actions/workflow/status/markstaymd/plate-stay/test.yml?label=tests)](https://github.com/markstaymd/plate-stay/actions/workflows/test.yml)
 [![types](https://img.shields.io/badge/types-included-blue)](https://www.typescriptlang.org/)
-[![spec](https://img.shields.io/badge/spec-v1.6-blue)](https://markstay.org)
+[![spec](https://img.shields.io/badge/spec-v1.7-blue)](https://markstay.org)
 [![License](https://img.shields.io/npm/l/plate-stay)](./LICENSE)
 
 A fail-closed bridge between [Plate](https://platejs.org)'s `withBlockId` Markdown
@@ -22,6 +22,26 @@ which that rule forbids, or drop the child's evidence. Both are worse than sayin
 `toPlate` throws `UnsupportedPlateBlock` on any block carrying one. A custom key such as
 `x-subhash` stays ordinary block metadata and converts normally. The Python reference
 implements the sections themselves.
+
+## Write-safety scope (§3.4)
+
+
+`fromPlate` writes each block's marker on a separate line after its content,
+using only the carried Plate id and its block hash. `serializeStay` delegates
+marker insertion to `fromPlate`, so it uses the same placement. Neither writer
+inserts a marker on a line that already contains content.
+
+The bridge accepts headings, paragraphs, single-paragraph blockquotes, and
+closed fenced code blocks without internal blank lines. It rejects list-item
+wrappers and table wrappers with `UnsupportedPlateBlock`. Child identity
+(§§5.5-5.6) is optional under §16 and is not implemented by this adapter. Neither
+list-item carriers nor table-row carriers can be written here, so §3.4's
+carrier refusals are unreachable.
+
+`toPlate` rejects a document containing a marker with the exact `subhash` key,
+including an invalid value, because the bridge has no child-identity mapping.
+`deserializeStay` uses that conversion too. These read paths cannot promote a
+child stay to its container or discard its child evidence during conversion.
 
 ## The problem
 

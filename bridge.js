@@ -1,4 +1,4 @@
-// Plate `withBlockId` <-> markstay bridge (worked example, not a published package).
+// Plate `withBlockId` <-> markstay bridge (source for plate-stay and the worked example).
 //
 // Plate's `@platejs/markdown` `serialize({ withBlockId: true })` wraps each block as
 // an MDX-flow element `<block id="…">…</block>` with a 2-space-indented body, "to
@@ -19,10 +19,10 @@
 // validated against real Plate in Phase 0: a heading, a paragraph, a (single-
 // paragraph) blockquote, or a CLOSED fenced code block with no internal blank line.
 // Everything else fails closed with a clear UnsupportedPlateBlock error, and the
-// reasons are honest spec facts, not bugs:
-//   - Lists: Plate wraps each list ITEM as its own `<block>`, but markstay defers
-//     list-item identity (SPEC §5.1) and lists it as a non-goal (SPEC §14) , a marker
-//     only ever identifies the whole list, so per-item ids have nowhere to attach.
+// reasons follow this adapter's supported subset:
+//   - Lists: Plate wraps each list ITEM as its own `<block>`, but this adapter does
+//     not implement the optional child identity in SPEC §§5.5-5.6. Its markers
+//     identify whole blocks, so per-item ids have no mapping here.
 //   - Loose / multi-paragraph blocks and fences with an internal blank line: under the
 //     blank-line core (SPEC §5 baseline; CommonMark tree mode §5.2 is unimplemented)
 //     these split into multiple blocks, so a single trailing marker would bind the
@@ -100,8 +100,8 @@ function fenceClosed(lines) {
 // Why each non-accepted kind is rejected, for the fail-closed error message.
 const REJECT_REASON = {
   list:
-    "wraps a list item; markstay has no list-item identity (SPEC §5.1 defers it, " +
-    "§14 makes it a non-goal , a marker identifies the whole list, not an item)",
+    "wraps a list item; this adapter does not implement child identity " +
+    "(SPEC §§5.5-5.6 are optional under §16)",
   "unclosed-fence":
     "wraps an unclosed code fence; the trailing marker would land inside the fence",
   "thematic-break": "wraps a thematic break, not a v1-supported block kind",
