@@ -130,6 +130,60 @@ function classifyBlock(content) {
 
 const ACCEPTED = new Set(["heading", "paragraph", "blockquote", "fence"]);
 
+// A blank-line chunk can still contain several Markdown blocks. Keep the new
+// unindented read path within a conservative, unambiguous subset rather than
+// assigning one id to a heading followed by prose, or to two adjacent headings.
+function assertResavedBlock(content, kind, id) {
+  const lines = content.split("\n");
+  let single = false;
+  if (kind === "heading") {
+    single = lines.length === 1;
+  } else if (kind === "fence") {
+    const open = FENCE_OPEN_RE.exec(lines[0])[1];
+    const closeAt = lines.findIndex((line, i) => {
+      const close = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
+      return i > 0 && close && close[1][0] === open[0] && close[1].length >= open.length;
+    });
+    single = closeAt === lines.length - 1 &&
+      (open[0] !== "`" || !lines[0].slice(open.length).includes("`"));
+  } else {
+    // Only a paragraph inside a quote is supported. Reject nested blocks, including
+    // a quote's marker-only line, which separates its paragraphs without a blank.
+    const paragraph = kind === "blockquote"
+      ? lines.map((line) => line.startsWith(">") ? line.replace(/^> ?/, "") : line)
+      : lines;
+    // A definition can have escaped brackets or a label spanning several lines.
+    // Refuse candidates conservatively: definitions can produce no editor block.
+    single = !/^\[[\s\S]*\]:/m.test(paragraph.map((line) => line.trimStart()).join("\n")) &&
+      paragraph.every((line, i) => {
+        if (isAsciiBlankLine(line) || (i === 0 && /^[ \t]/.test(line))) return false;
+        const start = line.trimStart();
+        return !LIST_ITEM_RE.test(start) && !HEADING_RE.test(start) &&
+          !THEMATIC_BREAK_RE.test(start) && !FENCE_OPEN_RE.test(start) &&
+          !/^>|^[-=]+[ \t]*$/.test(start) &&
+          (kind === "blockquote" || !/^(import|export)[ \t]/.test(start));
+      });
+  }
+  // Flow/inline MDX expressions can disappear or split blocks in the plugin
+  // reader. Leave them outside this string-level reader's whitespace extension.
+  // Escaped punctuation and closed inline code cannot open an MDX construct.
+  // Pair whole backtick runs of equal length. Multiline spans would gain literal
+  // indentation when toPlate re-wraps them for the plugin reader, so refuse those.
+  const prose = kind === "fence" ? "" : content.replace(
+    /\\[\\`<{]|(?<!`)(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)/g,
+    (span) => {
+      if (span.includes("\n")) single = false;
+      return "";
+    }
+  );
+  if (kind !== "fence" && /\{|<(?![ \t])/.test(prose)) single = false;
+  if (!single) {
+    throw new UnsupportedPlateBlock(
+      `wrapper id="${id}" re-saved body is not an unambiguous single supported block`
+    );
+  }
+}
+
 /**
  * Convert Plate `withBlockId` Markdown into plain Markdown carrying markstay markers.
  *
@@ -139,7 +193,7 @@ const ACCEPTED = new Set(["heading", "paragraph", "blockquote", "fence"]);
  * mint; Plate's default `nanoid(10)` is §6-valid). Throws UnsupportedPlateBlock on any
  * wrapper outside the supported subset, on a duplicate id, or on stray content.
  *
- * @param {string} md Plate serializer output (`withBlockId: true`).
+ * @param {string} md Plate `withBlockId` output, including a plain editor's re-save.
  * @returns {string} plain Markdown + markstay markers (LF line endings).
  */
 export function fromPlate(md) {
@@ -174,8 +228,8 @@ export function fromPlate(md) {
     }
     seenIds.add(id);
 
-    // Collect body lines up to the closing `</block>`. Each non-blank body line must
-    // be 2-space indented; a nested `<block` or an embedded `</block>` is rejected.
+    // Collect body lines up to the closing `</block>`. A nested `<block` or an
+    // embedded `</block>` is rejected in either serializer whitespace style.
     const body = [];
     i += 1;
     let closed = false;
@@ -192,21 +246,26 @@ export function fromPlate(md) {
       if (BLOCK_CLOSE_TAG_RE.test(bl)) {
         throw new UnsupportedPlateBlock(`embedded </block> in wrapper id="${id}"`);
       }
-      if (!isAsciiBlankLine(bl) && !bl.startsWith("  ")) {
-        throw new UnsupportedPlateBlock(
-          `body line not 2-space indented in wrapper id="${id}": ${JSON.stringify(bl)}`
-        );
-      }
       body.push(bl);
     }
     if (!closed) {
       throw new UnsupportedPlateBlock(`unterminated <block> wrapper id="${id}"`);
     }
 
-    // Dedent (drop the 2-space indent; blank lines stay blank) and require the body to
-    // be a single blank-line block of a supported kind.
+    // withBlockId indents every body line by two spaces. A plain Plate save from
+    // 53.3.18 leaves the body unindented, with blank lines just inside the wrapper.
+    // Choose one style per wrapper; never strip individual code/continuation lines
+    // just because they happen to start with two spaces.
+    const first = body.find((l) => !isAsciiBlankLine(l));
+    const indented = first?.startsWith("  ");
+    if (!indented && first && /^[ \t]/.test(first)) {
+      throw new UnsupportedPlateBlock(`unsupported body indentation in wrapper id="${id}"`);
+    }
+    if (indented && body.some((l) => !isAsciiBlankLine(l) && !l.startsWith("  "))) {
+      throw new UnsupportedPlateBlock(`inconsistent body indentation in wrapper id="${id}"`);
+    }
     const dedented = body
-      .map((l) => (isAsciiBlankLine(l) ? "" : l.slice(2)))
+      .map((l) => (isAsciiBlankLine(l) ? "" : indented ? l.slice(2) : l))
       .join("\n");
     const chunks = segmentBlankLine(dedented);
     if (chunks.length === 0) {
@@ -226,6 +285,7 @@ export function fromPlate(md) {
         `wrapper id="${id}" ${REJECT_REASON[kind] ?? "is not a v1-supported block kind"}`
       );
     }
+    if (!indented) assertResavedBlock(content, kind, id);
     if (MARKER_LIKE.test(content)) {
       throw new UnsupportedPlateBlock(
         `wrapper id="${id}" body already contains a markstay-style marker`
